@@ -1,0 +1,165 @@
+Estructura típica para un proyecto backend en PHP, usando el enfoque de MVC (Modelo-Vista-Controlador). 
+
+levantar el servidor PHP integrado con el Terminal
+    php -S localhost:8080
+
+1. Carpeta y Archivos Principales
+
+config/
+    Carpeta para archivos de configuración del proyecto, como conexión a bases de datos, constantes globales, etc.
+
+controllers/
+    Aquí van los controladores, que gestionan la lógica de las peticiones y respuestas del usuario.
+
+core/
+    Incluye el núcleo de la aplicación, clases base y funciones principales (por ejemplo, manejo de rutas o controladores base).
+
+routes/
+    Carpeta destinada a las rutas del proyecto, donde se define qué controlador y método se ejecutan según la URL solicitada.
+
+uploads/
+    Espacio para almacenar archivos subidos por los usuarios, como imágenes o documentos.
+
+views/
+    Aquí se encuentran las vistas, es decir, los archivos que se encargan de mostrar la información al usuario (HTML, PHP, etc.).
+
+.env
+    Archivo especial para variables de entorno, como credenciales o configuraciones sensibles y seguras.
+
+.htaccess
+    Archivo de configuración para el servidor Apache, usado para configurar redirecciones, reglas de acceso y URLs amigables.
+
+index.php
+    Punto de entrada principal de la aplicación PHP; suele gestionar la inicialización y el manejo de peticiones.
+
+
+2. Carpeta config / Archivo: database.php
+    Este archivo se encarga de la configuración y conexión a la base de datos usando PDO en PHP.
+
+    Explicación:
+    Define los detalles de conexión: servidor, nombre de la base de datos, usuario y contraseña.
+    Crea una instancia PDO para manejar la conexión.
+    Activa el modo de error para lanzar excepciones en caso de fallos.
+    En caso de error, envía un código HTTP 500 y un mensaje JSON con la causa.
+
+3. Carpeta core / Archivo: helpers.php
+    Este archivo contiene funciones auxiliares que se usan en todo el proyecto. 
+    Por ejemplo, la función para cargar variables de entorno desde el archivo .env.
+
+    Explicación:
+    Lee el archivo .env línea por línea.
+    Ignora líneas vacías y comentarios que comienzan con #.
+    Separa cada línea en clave y valor por el signo =.
+    Guarda las variables en el arreglo superglobal $_ENV para que estén disponibles globalmente en la aplicación.
+    Si el archivo .env no existe, lanza una excepción para alertar early del problema.
+
+4. Carpeta core / Archivo: core.php
+    Este archivo se encarga de definir configuraciones globales necesarias para el backend, 
+    como los encabezados HTTP para CORS y la carga de variables de entorno desde el archivo .env.
+
+    Explicación:
+    Cabeceras HTTP:
+    Content-Type: application/json indica que las respuestas serán JSON.
+    Access-Control-Allow-Origin: * permite solicitudes CORS desde cualquier origen.
+    Access-Control-Allow-Methods especifica los métodos HTTP permitidos.
+    Access-Control-Allow-Headers define los encabezados permitidos en las solicitudes.
+
+    Manejo de peticiones OPTIONS:
+    Cuando el navegador envía una petición preflight (OPTIONS) para CORS, el servidor responde con éxito sin procesar más.
+
+    Carga del archivo helpers y .env:
+    Se incluye helpers.php, donde está la función loadEnv().
+
+    Se ejecuta loadEnv() para cargar las variables del archivo .env al entorno PHP, 
+    haciendo estas configuraciones globalmente accesibles.
+
+5. Archivo: .htaccess
+    Este archivo es fundamental para la configuración del servidor Apache 
+    y la correcta gestión de URLs amigables en tu proyecto PHP.
+
+    Explicación:
+    RewriteEngine On: Activa el módulo de reescritura de URLs de Apache (mod_rewrite).
+    RewriteCond %{REQUEST_FILENAME} !-f
+
+    Comprueba que la solicitud no corresponda a un archivo físico existente en el servidor.
+
+    RewriteCond %{REQUEST_FILENAME} !-d
+    Comprueba que la solicitud no corresponda a un directorio físico existente.
+
+    RewriteRule ^(.*)$ index.php [QSA,L]
+    Si la petición no es un archivo ni directorio existente, redirige toda la petición a index.php.
+
+    QSA (Query String Append) asegura que los parámetros en la URL se conserven.
+
+    L indica que es la última regla, no se aplicarán otras reglas después.
+
+    Esta configuración es esencial para que puedas manejar el enrutamiento 
+    de tu aplicación a través de un solo punto de entrada (index.php), 
+    facilitando la gestión de rutas limpias y amigables.
+
+6. Archivo: index.php
+    Este es el punto de entrada principal de la aplicación, 
+    encargado de inicializar configuraciones, 
+    gestionar la conexión a la base de datos y enrutar las solicitudes entrantes.
+
+    Explicación:
+    Se incluye el archivo core.php para habilitar CORS y cargar variables de entorno.
+    Se incluye la configuración de conexión a la base de datos.
+    Se obtiene la ruta solicitada por el cliente, limpiando la base (/backjuegos) y barras sobrantes.
+    Se enrutan las solicitudes:
+    Si la ruta corresponde a /api/generos, se cargan las rutas de géneros.
+    Si corresponde a /api/plataformas, se cargan las rutas de plataformas.
+    Si no se envía ruta o es la raíz, se muestra la página estática index.html con la documentación de la API.
+    Si la ruta no coincide con ninguna anterior, se devuelve un error 404 en formato JSON.
+
+7. Carpeta routes / Archivo: generosRoutes.php
+    Este archivo gestiona las rutas relacionadas con el recurso "géneros" 
+    y distribuye las solicitudes HTTP hacia los métodos apropiados del controlador correspondiente.
+
+    Explicación:
+    Importa el controlador de géneros y la configuración global (core.php).
+    Crea una instancia del controlador GeneroController.
+    Obtiene la ruta, método HTTP y el parámetro id (si existe).
+    Usa una expresión regular para extraer el id si está en la URL (ejemplo: /api/generos/5).
+    Decodifica el cuerpo de la petición JSON para métodos POST y PUT.
+    Usa un switch para ejecutar la función adecuada según el método HTTP:
+    GET sin id obtiene todos los géneros, con id obtiene uno específico.
+    POST crea un nuevo género con los datos enviados.
+    PUT actualiza un género existente identificado por id.
+    DELETE elimina un género identificado por id.
+    Responde con errores HTTP adecuados si faltan datos o el método no está permitido.
+
+8. Carpeta controllers / Archivo: generoController.php
+    Este archivo contiene la clase GeneroController, 
+    que gestiona la lógica de negocio para el recurso "géneros" y maneja las operaciones 
+    CRUD (Crear, Leer, Actualizar, Eliminar) en la base de datos.
+
+    Explicación general:
+    getAll(): Recupera todos los géneros de la base de datos y los devuelve en JSON.
+    getById($id): Recupera un género específico por su ID; si no existe devuelve error 404.
+    create($data): Valida datos, evita duplicados y crea un nuevo género.
+    update($id, $data): Valida campos para actualizar, verifica la existencia y ejecuta la actualización.
+    delete($id): Elimina el género cuyo ID es proporcionado, devuelve error si no existe.
+
+    Esta clase sigue principios de manejo de errores y buenas prácticas 
+    para interactuar con la base de datos usando PDO y métodos HTTP típicos de una API REST.
+
+
+    Conclusión
+    En esta guía hemos recorrido los elementos fundamentales para construir un backend en PHP 
+    siguiendo el enfoque MVC, replicando una estructura similar a la que conocen de Express.js 
+    para facilitar su aprendizaje y aplicación.
+
+    Hemos cubierto:
+    La organización de carpetas y archivos para mantener un código ordenado y escalable.
+    La configuración de la conexión a bases de datos mediante PDO y el manejo seguro de variables sensibles con archivos .env.
+    La gestión de las solicitudes HTTP con control de rutas, métodos y respuestas adecuadas.
+    El diseño de controladores responsables de la lógica de negocio y la interacción con la base de datos.
+    La configuración necesaria para permitir solicitudes CORS y el manejo correcto de peticiones cross-origin.
+    La utilización de .htaccess para URLs amigables y centralización del punto de entrada con index.php.
+    La integración de documentación estática para facilitar la visualización y prueba de la API.
+    Con esta base sólida, estás preparado para ampliar tu backend, incorporando nuevos recursos o funcionalidades, como autenticación, manejo avanzado de archivos, 
+        integración con frontends modernos y aplicaciones completas.
+    Recuerda que mantener una estructura consistente y buenas prácticas de validación y manejo de errores es clave para construir aplicaciones mantenibles y seguras.
+
+    ¡Sigue explorando, practicando y mejorando tus proyectos!
